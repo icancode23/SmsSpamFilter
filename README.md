@@ -15,4 +15,4 @@ Don't load the models everytime the program get executed
 # Credits
 Dataset : https://archive.ics.uci.edu/ml/datasets/SMS+Spam+Collection
 
-Some codes are adapted from : http://radimrehurek.com/data_science_python/
+Large portions of the codes are adapted from : http://radimrehurek.com/data_science_python/
