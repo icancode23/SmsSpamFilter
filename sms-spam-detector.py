@@ -1,6 +1,7 @@
 # Imports
 import pandas as pd
 import os, sys, getopt, cPickle, csv, sklearn
+from nltk.corpus import stopwords
 from sklearn.feature_extraction.text import CountVectorizer, TfidfTransformer
 from sklearn.naive_bayes import MultinomialNB
 from sklearn.svm import SVC, LinearSVC
@@ -11,28 +12,34 @@ from sklearn.cross_validation import StratifiedKFold, cross_val_score, train_tes
 from textblob import TextBlob
 
 # Dataset
+STOP = set(stopwords.words('english'))
 MESSAGES = pd.read_csv('./data/SMSSpamCollection', sep='\t', quoting=csv.QUOTE_NONE, names=["label", "message"])
 
 # Preprocessing
-def tokens(message):
+def split_tokens(message):
     message = unicode(message, 'utf8')
     return TextBlob(message).words
 
-def lemmas(message):
+def split_lemmas(message):
     message = unicode(message, 'utf8').lower()
     words = TextBlob(message).words
     return [word.lemma for word in words]
+
+def split_stopwords(message):
+    message = unicode(message, 'utf8').lower()
+    words = TextBlob(message).words
+    return [word.lemma for word in words if word not in STOP]
 
 # Training
 def train_multinomial_nb(messages):
     # split dataset for cross validation
     msg_train, msg_test, label_train, label_test = train_test_split(messages['message'], messages['label'], test_size=0.2)
     # create pipeline
-    pipeline = Pipeline([('bow', CountVectorizer(analyzer=lemmas)),('tfidf', TfidfTransformer()),('classifier', MultinomialNB())])
+    pipeline = Pipeline([('bow', CountVectorizer(analyzer=split_stopwords)),('tfidf', TfidfTransformer()),('classifier', MultinomialNB())])
     # pipeline parameters to automatically explore and tune
     params = {
     'tfidf__use_idf': (True, False),
-    'bow__analyzer': (lemmas, tokens),
+    'bow__analyzer': (split_lemmas, split_tokens, split_stopwords),
     }
     grid = GridSearchCV(
         pipeline,
@@ -63,7 +70,7 @@ def train_svm(messages):
     # split dataset for cross validation
     msg_train, msg_test, label_train, label_test = train_test_split(messages['message'], messages['label'], test_size=0.2)
     # create pipeline
-    pipeline = Pipeline([('bow', CountVectorizer(analyzer=lemmas)),('tfidf', TfidfTransformer()),('classifier', SVC())])
+    pipeline = Pipeline([('bow', CountVectorizer(analyzer=split_stopwords)),('tfidf', TfidfTransformer()),('classifier', SVC())])
     # pipeline parameters to automatically explore and tune
     params = [
         {'classifier__C': [1, 10, 100, 1000], 'classifier__kernel': ['linear']},
@@ -131,3 +138,4 @@ def predict(message):
 
 if __name__ == "__main__":
    main(sys.argv[1:])
+
